@@ -1,7 +1,8 @@
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
+import ttlMap from 'ttl-map';
 import 'dotenv/config';
-import {isUrlMalicious} from './url-analyze.js'
-import {logToDiscord} from './logger.js'
+import { analyzeUrl } from './url-analyze.js';
+import { logToDiscord } from './logger.js';
 
 const client = new Client({
   intents: [
@@ -11,93 +12,82 @@ const client = new Client({
   ],
   partials: [Partials.Channel],
 });
-const LOG_CHANNEL_ID= process.env.LOG_CHANNEL_ID
-const guildMessageBuckets = new Map(); // guildId -> [{ userId, content, messageId, channelId, timestamp }]
-const notifiedGuilds = new Map(); // guildId -> timestamp
 
-const TIME_WINDOW = 10000;
+const PASSIVE_MODE = process.env.PASSIVE_MODE === 'true';
+const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
+
+const TIME_WINDOW = 10_000; // 10 seconds
 const SAME_MSG_THRESHOLD = 3;
-const NOTIFY_COOLDOWN = 1800000; // Only notify once every 30m per guild
+const NOTIFY_COOLDOWN = 30 * 60 * 1000; // 30 minutes
+
+const guildMessageBuckets = ttlMap({ ttl: TIME_WINDOW });
+const notifiedGuilds = ttlMap({ ttl: NOTIFY_COOLDOWN });
 
 client.once('ready', () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
-  await logToDiscord(`Bot is now online as ${client.user.tag}`);
+  const status = `[${PASSIVE_MODE ? 'PASSIVE_MODE' : 'ACTIVE'}]`;
+  console.log(`✅ Logged in as ${client.user.tag} ${status}`);
+  logToDiscord(`Bot is now online as ${client.user.tag} ${status}`);
 });
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
-  const rawUrls = message.content.match(/https?:\/\/[^\s<]+/g) || [];
-
-  // Extract any embedded URLs (like from rich embeds)
-  const embedUrls = message.embeds
-    .flatMap(embed => {
-      const urls = [];
-      if (embed.url) urls.push(embed.url);
-      if (embed.description) {
-        urls.push(...(embed.description.match(/https?:\/\/[^\s<]+/g) || []));
-      }
-      if (embed.fields) {
-        for (const field of embed.fields) {
-          if (field.value) {
-            urls.push(...(field.value.match(/https?:\/\/[^\s<]+/g) || []));
-          }
-        }
-      }
-      return urls;
-    });
-
-  const urls = [...new Set([...rawUrls, ...embedUrls])]; // Remove duplicates
+  const now = Date.now();
   const guildId = message.guild.id;
   const userId = message.author.id;
-  const now = Date.now();
+  const content = message.content.trim();
 
-  // Initialize bucket if not exists
-  if (!guildMessageBuckets.has(guildId)) guildMessageBuckets.set(guildId, []);
-  const bucket = guildMessageBuckets.get(guildId);
-
-  // Log this message
-  bucket.push({
-    userId,
-    content: message.content.trim(),
-    messageId: message.id,
-    channelId: message.channel.id,
-    timestamp: now,
+  const rawUrls = content.match(/https?:\/\/[^\s<]+/g) || [];
+  const embedUrls = message.embeds.flatMap(embed => {
+    const urls = [];
+    if (embed.url) urls.push(embed.url);
+    if (embed.description) urls.push(...(embed.description.match(/https?:\/\/[^\s<]+/g) || []));
+    for (const field of embed.fields || []) {
+      urls.push(...(field.value.match(/https?:\/\/[^\s<]+/g) || []));
+    }
+    return urls;
   });
+  const urls = [...new Set([...rawUrls, ...embedUrls])];
 
-  // Clean old messages from the bucket
-  const recent = bucket.filter(entry => now - entry.timestamp < TIME_WINDOW);
-  guildMessageBuckets.set(guildId, recent);
+  // Push to TTLMap bucket
+  const bucket = guildMessageBuckets.get(guildId) || [];
+  bucket.push({ userId, content, messageId: message.id, channelId: message.channel.id, timestamp: now });
+  guildMessageBuckets.set(guildId, bucket);
 
-  // Check for spam: same content across channels from same user
-  const recentSameContent = recent.filter(
-    entry => entry.content === message.content.trim() && entry.userId === userId
+  const recentSameContent = bucket.filter(entry =>
+    entry.content === content && entry.userId === userId
   );
-
   const uniqueChannels = new Set(recentSameContent.map(e => e.channelId));
-  if (urls.length != 0){
-    for (const url of urls) {
-      const bad = await isUrlMalicious(url);
-      if (bad) {
-        if (message.deletable) {
-          try {
-            await message.delete();
-          } catch (err) {
-            console.error(`❌ Failed to delete message from ${message.author.id}: ${err.message}`);
+
+  if (urls.length > 0) {
+    const results = await Promise.all(urls.map(url => analyzeUrl(url).then(result => ({ url, result }))));
+
+    const malUrls = results.filter(r => r.result.malicious > 0 || r.result.suspicious > 0);
+    if (malUrls.length > 0) {
+      const badUrls = malUrls.map(r => r.url).join('\n');
+      const logMsg = `Detected malicious URLs in message by ${message.author.tag}:\n${badUrls} at <#${message.channel.id}>`;
+
+      if (PASSIVE_MODE) {
+        console.log(`⚠️ Passive mode: Detected malicious URLs`);
+        logToDiscord(`🔍 [PASSIVE MODE] ${logMsg}`);
+      } else {
+        try {
+          if (message.deletable) await message.delete();
+          logToDiscord(logMsg);
+
+          const alertChannel = await client.channels.fetch(LOG_CHANNEL_ID);
+          if (alertChannel?.isTextBased?.()) {
+            await alertChannel.send(`🚨 Malicious URLs from <@${userId}>:\n${badUrls} at <#${message.channel.id}>`);
           }
-        } else {
-          console.warn(`⚠️ Message from ${message.author.id} not deletable.`);
+        } catch (err) {
+          console.error(`❌ Failed to delete message or notify: ${err.message}`);
+          logToDiscord(`❌ Error processing malicious message: ${err.message}`);
         }
-        const alertChannel = await client.channels.fetch(process.env.LOG_CHANNEL_ID);
-        await alertChannel.send(`🚨 Malicious URL from <@${message.author.id}>: ${url}`);
-        break;
       }
     }
   }
-  if (recentSameContent.length > SAME_MSG_THRESHOLD || uniqueChannels.size > 2) {
-    console.log(`🚨 Spam detected in guild ${guildId} by user ${userId}`);
 
-    // Delete all matching messages
+  if (recentSameContent.length >= SAME_MSG_THRESHOLD || uniqueChannels.size >= 3) {
     const deletedIds = new Set();
 
     for (const entry of recentSameContent) {
@@ -107,29 +97,30 @@ client.on('messageCreate', async (message) => {
         if (!channel.isTextBased()) continue;
 
         const msg = await channel.messages.fetch(entry.messageId);
-        if (msg && msg.deletable) {
+        if (msg && msg.deletable && !PASSIVE_MODE) {
           await msg.delete();
           deletedIds.add(entry.messageId);
         }
       } catch (err) {
-        if (err.code !== 10008) { // 10008 = Unknown Message
+        if (err.code !== 10008) {
           console.warn(`❌ Error deleting message ${entry.messageId}: ${err.message}`);
         }
       }
     }
 
-    // Notify only if cooldown passed
-    const lastNotified = notifiedGuilds.get(guildId) || 0;
-    if (now - lastNotified > NOTIFY_COOLDOWN) {
-      try {
-        const channel = await client.channels.fetch(recentSameContent[0].channelId);
-        const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
-          if (logChannel && logChannel.isTextBased()) {
-            await logChannel.send(`🚨 Spam detected by <@${userId}> in guild **${message.guild.name}** (${message.guild.id})`);
-          }
+    if (deletedIds.size > 0) {
+      logToDiscord(`✅ Deleted ${deletedIds.size} spam messages from ${message.author.tag}`);
+    }
+
+    if (PASSIVE_MODE) {
+      logToDiscord(`🔍 [PASSIVE MODE] Detected spam by ${message.author.tag} in guild **${message.guild.name}**`);
+    }
+
+    if (!notifiedGuilds.get(guildId)) {
+      const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
+      if (logChannel?.isTextBased?.()) {
+        await logChannel.send(`🚨 Spam detected by <@${userId}> in guild **${message.guild.name}** at <#${message.channel.id}>`);
         notifiedGuilds.set(guildId, now);
-      } catch (err) {
-        console.error('❌ Failed to send notification:', err.message);
       }
     }
   }
