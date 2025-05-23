@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import 'dotenv/config';
 import {isUrlMalicious} from './url-analyze.js'
+import {logToDiscord} from './logger.js'
 
 const client = new Client({
   intents: [
@@ -16,10 +17,11 @@ const notifiedGuilds = new Map(); // guildId -> timestamp
 
 const TIME_WINDOW = 10000;
 const SAME_MSG_THRESHOLD = 3;
-const NOTIFY_COOLDOWN = 10000; // Only notify once every 10s per guild
+const NOTIFY_COOLDOWN = 1800000; // Only notify once every 30m per guild
 
 client.once('ready', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
+  await logToDiscord(`Bot is now online as ${client.user.tag}`);
 });
 
 client.on('messageCreate', async (message) => {
