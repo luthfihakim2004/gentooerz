@@ -12,7 +12,7 @@ setInterval(() => {
       cache.delete(key);
     }
   }
-}, 10 * 60 * 1000); // every 10 minutes
+}, 12 * 60 * 60 * 1000); // every 12 hours
 
 export async function analyzeUrl(url) {
   // Check cache

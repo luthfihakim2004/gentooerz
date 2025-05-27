@@ -1,93 +1,97 @@
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import ttlMap from 'ttl-map';
 import 'dotenv/config';
-import { analyzeUrl } from './url-analyze.js';
-import { logToDiscord } from './logger.js';
+import { TTLMap } from './utils/ttlmap.js' 
+import { analyzeUrl } from './utils/url-analyze.js'
+import { client } from './client.js'
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
-  partials: [Partials.Channel],
-});
+const LOG_CHANNEL_ID= process.env.LOG_CHANNEL_ID
+const guildMessageBuckets = new TTLMap(); // guildId -> [{ userId, content, messageId, channelId, timestamp }]
+const notifiedGuilds = new TTLMap(); // guildId -> timestamp
 
-const PASSIVE_MODE = process.env.PASSIVE_MODE === 'true';
-const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
-
-const TIME_WINDOW = 10_000; // 10 seconds
+const TIME_WINDOW = 10000;
 const SAME_MSG_THRESHOLD = 3;
-const NOTIFY_COOLDOWN = 30 * 60 * 1000; // 30 minutes
-
-const guildMessageBuckets = ttlMap({ ttl: TIME_WINDOW });
-const notifiedGuilds = ttlMap({ ttl: NOTIFY_COOLDOWN });
+const NOTIFY_COOLDOWN = 1800000; // Only notify once every 30m per guild
 
 client.once('ready', () => {
-  const status = `[${PASSIVE_MODE ? 'PASSIVE_MODE' : 'ACTIVE'}]`;
-  console.log(`✅ Logged in as ${client.user.tag} ${status}`);
-  logToDiscord(`Bot is now online as ${client.user.tag} ${status}`);
+  console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
+  const alertChannel = await client.channels.fetch(process.env.LOG_CHANNEL_ID);
+  const rawUrls = message.content.match(/https?:\/\/[^\s<]+/g) || [];
 
-  const now = Date.now();
+  // Extract any embedded URLs (like from rich embeds)
+  const embedUrls = message.embeds
+    .flatMap(embed => {
+      const urls = [];
+      if (embed.url) urls.push(embed.url);
+      if (embed.description) {
+        urls.push(...(embed.description.match(/https?:\/\/[^\s<]+/g) || []));
+      }
+      if (embed.fields) {
+        for (const field of embed.fields) {
+          if (field.value) {
+            urls.push(...(field.value.match(/https?:\/\/[^\s<]+/g) || []));
+          }
+        }
+      }
+      return urls;
+    });
+
+  const urls = [...new Set([...rawUrls, ...embedUrls])]; // Remove duplicates
   const guildId = message.guild.id;
   const userId = message.author.id;
-  const content = message.content.trim();
+  const now = Date.now();
 
-  const rawUrls = content.match(/https?:\/\/[^\s<]+/g) || [];
-  const embedUrls = message.embeds.flatMap(embed => {
-    const urls = [];
-    if (embed.url) urls.push(embed.url);
-    if (embed.description) urls.push(...(embed.description.match(/https?:\/\/[^\s<]+/g) || []));
-    for (const field of embed.fields || []) {
-      urls.push(...(field.value.match(/https?:\/\/[^\s<]+/g) || []));
-    }
-    return urls;
+  // Initialize bucket if not exists
+  if (!guildMessageBuckets.has(guildId)) guildMessageBuckets.set(guildId, []);
+  const bucket = guildMessageBuckets.get(guildId);
+
+  // Log this message
+  bucket.push({
+    userId,
+    content: message.content.trim(),
+    messageId: message.id,
+    channelId: message.channel.id,
+    timestamp: now,
   });
-  const urls = [...new Set([...rawUrls, ...embedUrls])];
 
-  // Push to TTLMap bucket
-  const bucket = guildMessageBuckets.get(guildId) || [];
-  bucket.push({ userId, content, messageId: message.id, channelId: message.channel.id, timestamp: now });
-  guildMessageBuckets.set(guildId, bucket);
+  // Clean old messages from the bucket
+  const recent = bucket.filter(entry => now - entry.timestamp < TIME_WINDOW);
+  guildMessageBuckets.set(guildId, recent, TIME_WINDOW);
 
-  const recentSameContent = bucket.filter(entry =>
-    entry.content === content && entry.userId === userId
+  // Check for spam: same content across channels from same user
+  const recentSameContent = recent.filter(
+    entry => entry.content === message.content.trim() && entry.userId === userId
   );
+  
   const uniqueChannels = new Set(recentSameContent.map(e => e.channelId));
-
-  if (urls.length > 0) {
-    const results = await Promise.all(urls.map(url => analyzeUrl(url).then(result => ({ url, result }))));
-
-    const malUrls = results.filter(r => r.result.malicious > 0 || r.result.suspicious > 0);
-    if (malUrls.length > 0) {
-      const badUrls = malUrls.map(r => r.url).join('\n');
-      const logMsg = `Detected malicious URLs in message by ${message.author.tag}:\n${badUrls} at <#${message.channel.id}>`;
-
-      if (PASSIVE_MODE) {
-        console.log(`⚠️ Passive mode: Detected malicious URLs`);
-        logToDiscord(`🔍 [PASSIVE MODE] ${logMsg}`);
-      } else {
-        try {
-          if (message.deletable) await message.delete();
-          logToDiscord(logMsg);
-
-          const alertChannel = await client.channels.fetch(LOG_CHANNEL_ID);
-          if (alertChannel?.isTextBased?.()) {
-            await alertChannel.send(`🚨 Malicious URLs from <@${userId}>:\n${badUrls} at <#${message.channel.id}>`);
+  // Check Url
+  if (urls.length != 0){
+    for (const url of urls) {
+      const res = await analyzeUrl(url);
+      if (res.malicious > 0 || res.suspicious > 3) {
+        if (message.deletable) {
+          try {
+            await message.delete();
+          } catch (err) {
+            console.error(`❌ Failed to delete message from ${message.author.id}: ${err.message}`);
           }
-        } catch (err) {
-          console.error(`❌ Failed to delete message or notify: ${err.message}`);
-          logToDiscord(`❌ Error processing malicious message: ${err.message}`);
+
+        } else {
+          console.warn(`⚠️ Message from ${message.author.id} not deletable.`);
         }
+
+        await alertChannel.send(`🚨 Malicious URL from <@${message.author.id}>: ${url} at <#${message.channel.id}>`);
+        break;
       }
     }
   }
 
-  if (recentSameContent.length >= SAME_MSG_THRESHOLD || uniqueChannels.size >= 3) {
+  if (recentSameContent.length > SAME_MSG_THRESHOLD || uniqueChannels.size > 2) {
+    console.log(`🚨 Spam detected in guild ${guildId} by user ${userId}`);
+
+    // Delete all matching messages
     const deletedIds = new Set();
 
     for (const entry of recentSameContent) {
@@ -97,30 +101,29 @@ client.on('messageCreate', async (message) => {
         if (!channel.isTextBased()) continue;
 
         const msg = await channel.messages.fetch(entry.messageId);
-        if (msg && msg.deletable && !PASSIVE_MODE) {
+        if (msg && msg.deletable) {
           await msg.delete();
           deletedIds.add(entry.messageId);
         }
       } catch (err) {
-        if (err.code !== 10008) {
+        if (err.code !== 10008) { // 10008 = Unknown Message
           console.warn(`❌ Error deleting message ${entry.messageId}: ${err.message}`);
         }
       }
     }
 
-    if (deletedIds.size > 0) {
-      logToDiscord(`✅ Deleted ${deletedIds.size} spam messages from ${message.author.tag}`);
-    }
+    // Notify only if cooldown passed
+    const lastNotified = notifiedGuilds.get(guildId) || 0;
+    if (now - lastNotified > NOTIFY_COOLDOWN) {
+      try {
+        const channel = await client.channels.fetch(recentSameContent[0].channelId);
+          if (alertChannel && alertChannel.isTextBased()) {
+            await alertChannel.send(`🚨 Spam detected by <@${userId}> in guild **${message.guild.name}** at <#${message.channel.id}>`);
+          }
 
-    if (PASSIVE_MODE) {
-      logToDiscord(`🔍 [PASSIVE MODE] Detected spam by ${message.author.tag} in guild **${message.guild.name}**`);
-    }
-
-    if (!notifiedGuilds.get(guildId)) {
-      const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
-      if (logChannel?.isTextBased?.()) {
-        await logChannel.send(`🚨 Spam detected by <@${userId}> in guild **${message.guild.name}** at <#${message.channel.id}>`);
         notifiedGuilds.set(guildId, now);
+      } catch (err) {
+        console.error('❌ Failed to send notification:', err.message);
       }
     }
   }
