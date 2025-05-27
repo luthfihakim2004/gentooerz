@@ -1,12 +1,13 @@
 import 'dotenv/config';
 import { client } from './client.js';
 import { handleMessage } from './handlers/msgHandler.js';
+import { ActivityType } from 'discord.js';
 
 client.once('ready', () => {
   client.user.setPresence({
     activities: [{
       name: 'ur ass 👀',
-      type: Discord.ActivityType.Watching,
+      type: ActivityType.Watching,
     }],
     status: 'online',
   });
