@@ -1,13 +1,15 @@
 import { analyzeUrl } from '../utils/urlAnalyzer.js';
 import { detectSpam } from '../utils/detector.js';
 import { TTLMap } from '../utils/ttlMap.js';
+import { getWhitelist, getBlacklist } from '../utils/filters.js';
+import { incrementDeletedMessages } from '../utils/stats.js';
+import { getPassiveMode } from '../config.js';
 
 const messageBuckets = new TTLMap();
 const notifiedGuilds = new TTLMap();
 const TIME_WINDOW = 10000;
 const SAME_MSG_THRESHOLD = 3;
 const NOTIFY_COOLDOWN = 60 * 60 * 1000;
-const PASSIVE_MODE = process.env.PASSIVE_MODE == 'true';
 
 export async function handleMessage(message) {
   if (message.author.bot || !message.guild) return;
@@ -23,11 +25,12 @@ export async function handleMessage(message) {
     for (const url of urls) {
       const res = await analyzeUrl(url);
       if (res.malicious > 0 || res.suspicious > 3) {
-        if (!PASSIVE_MODE) {
+        if (!getPassiveMode()) {
           await safeDelete(message);
+          incrementDeletedMessages();
         }
         const msg = `${
-          PASSIVE_MODE ? '🔍 [Passive Mode]' : '🚨'
+          getPassiveMode() ? '🔍 [Passive Mode]' : '🚨'
         } Malicious URL from <@${userId}>: ${url} at <#${message.channel.id}>`;
 
         await alertChannel.send(msg);
@@ -47,7 +50,7 @@ export async function handleMessage(message) {
   if (isSpam) {
     const deletedIds = new Set();
 
-    if (!PASSIVE_MODE) {
+    if (!getPassiveMode()) {
       for (const entry of messagesToDelete) {
         if (deletedIds.has(entry.messageId)) continue;
         try {
@@ -57,6 +60,7 @@ export async function handleMessage(message) {
           const msg = await channel.messages.fetch(entry.messageId);
           if (msg && msg.deletable) {
             await msg.delete();
+            incrementDeletedMessages();
             deletedIds.add(entry.messageId);
           }
         } catch (err) {
@@ -70,7 +74,7 @@ export async function handleMessage(message) {
     const lastNotified = notifiedGuilds.get(guildId) || 0;
     if (now - lastNotified > NOTIFY_COOLDOWN) {
       const alertMsg = `${
-        PASSIVE_MODE ? '🔍 [Passive Mode]' : '🚨'
+        getPassiveMode() ? '🔍 [Passive Mode]' : '🚨'
       } Spam detected by <@${userId}> in guild **${message.guild.name}** at <#${message.channel.id}>`;
 
       await alertChannel.send(alertMsg);
@@ -101,6 +105,7 @@ async function safeDelete(message) {
   if (message.deletable) {
     try {
       await message.delete();
+      incrementDeletedMessages();
     } catch (err) {
       console.error(`❌ Failed to delete message from ${message.author.id}: ${err.message}`);
     }
