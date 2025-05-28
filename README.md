@@ -1,8 +1,6 @@
-# Getting Started app for Discord
+# Overview 
 
-This project contains a basic rock-paper-scissors-style Discord app written in JavaScript, built for the [getting started guide](https://discord.com/developers/docs/getting-started).
-
-![Demo of app](https://github.com/discord/discord-example-app/raw/main/assets/getting-started-demo.gif?raw=true)
+My Discord bot to prevent spam and malicious link. This project is still under development and testing on my discord server. Any feedback is welcome. 
 
 ## Project structure
 Below is a basic overview of the project structure:
@@ -33,7 +31,7 @@ Before you start, you'll need to install [NodeJS](https://nodejs.org/en/download
 Configuring the app is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
 
 ### Setup project
-
+check
 For the first time:
 ```
 npm install
