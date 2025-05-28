@@ -5,7 +5,7 @@ export function detectSpam(messages, userId, content, threshold) {
   const uniqueChannels = new Set(matching.map(m => m.channelId));
 
   return {
-    isSpam: matching.length > threshold || uniqueChannels.size > 2,
+    isSpam: matching.length >= threshold || uniqueChannels.size > 2,
     messagesToDelete: matching,
   };
 }
