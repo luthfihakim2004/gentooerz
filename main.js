@@ -32,7 +32,7 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-client.once('ready', () => {
+client.once('ready', async () => {
   client.user.setPresence({
     activities: [{
       name: 'ur ass 👀',
@@ -47,8 +47,12 @@ client.once('ready', () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
     logToDiscord(`Bot is now online as ${client.user.tag}`);
   }
+  const { setupAfkHandler } = await import('./handlers/vcHandler.js');
+  await setupAfkHandler(client);
 });
 
 client.on('messageCreate', handleMessage);
+
+
 
 client.login(process.env.BOT_TOKEN);

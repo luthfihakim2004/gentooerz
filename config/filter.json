@@ -1,7 +1,6 @@
 {
   "whitelist": [],
   "blacklist": [
-    "https://google.com/",
     "https://google.com"
   ]
 }
