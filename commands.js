@@ -25,6 +25,7 @@ try {
     { body: commands }
   );
   console.log('✅ Successfully reloaded application (/) commands.');
+
 } catch (error) {
   console.error('❌ Failed to register commands:', error);
 }

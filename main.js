@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getPassiveMode } from './config.js';
+import { getVoiceConnection } from '@discordjs/voice';
 
 client.commands = new Collection();
 
@@ -47,12 +48,20 @@ client.once('ready', async () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
     logToDiscord(`Bot is now online as ${client.user.tag}`);
   }
-  const { setupAfkHandler } = await import('./handlers/vcHandler.js');
-  await setupAfkHandler(client);
+});
+
+client.on('voiceStateUpdate', (oldState, newState) => {
+  const connection = getVoiceConnection(oldState.guild.id);
+  if (!connection) return;
+
+  const channel = oldState.guild.channels.cache.get(connection.joinConfig.channelId);
+  if (!channel || channel.members.size <= 1) {
+    //console.log(`[DISCONNECT] Leaving voice channel: ${channel.name}`);
+    connection.destroy();
+  }
 });
 
 client.on('messageCreate', handleMessage);
 
 
-
-client.login(process.env.BOT_TOKEN);
+client.login(process.env.DISCORD_TOKEN);

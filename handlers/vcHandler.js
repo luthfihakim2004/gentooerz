@@ -1,54 +1,70 @@
-import 'dotenv/config';
-import { Collection } from 'discord.js';
+import {
+  joinVoiceChannel,
+  getVoiceConnection,
+  EndBehaviorType,
+  entersState,
+  VoiceReceiver,
+  VoiceConnectionStatus
+} from '@discordjs/voice';
 
-const userActivity = new Collection();
-const afkChannelId = process.env.AFK_ROOM;
-const afkTimeoutMs = 30 * 60 * 1000;
-const checkIntervalMs = 60 * 60 * 1000;
+const afkTimeoutMs = 60 * 60 * 1000;
+const trackedUsers = new Map(); // userId => lastSpokeTimestamp
 
-export async function setupAfkHandler(client) {
+export async function monitorVoice(client, member, afkChannelId) {
+  const voiceChannel = member.voice.channel;
   const mainChannel = await client.channels.fetch(process.env.GENERAL_ROOM);
-  
-  client.on('voiceStateUpdate', (oldState, newState) => {
-    console.log(`[VOICE] ${newState.member?.user?.tag} changed voice state`);
-    const member = newState.member;
-    if (member.user.bot) return;
+  if (!voiceChannel) return;
 
-    // User joins or switches to non-AFK channel
-    if (newState.channelId && newState.channelId !== afkChannelId) {
-      userActivity.set(member.id, Date.now());
-    }
+  // Join the same VC
+  const connection = joinVoiceChannel({
+    channelId: voiceChannel.id,
+    guildId: voiceChannel.guild.id,
+    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+    selfDeaf: false,
+    selfMute: true,
+  });
 
-    // User leaves voice or goes into AFK channel
-    if (!newState.channelId || newState.channelId === afkChannelId) {
-      userActivity.delete(member.id);
-    }
+  await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
+
+  const receiver = connection.receiver;
+
+  receiver.speaking.on('start', userId => {
+    trackedUsers.set(userId, Date.now());
+    //console.log(`[SPEAKING] ${userId} started speaking`);
+  });
+
+  receiver.speaking.on('end', userId => {
+    //console.log(`[SPEAKING] ${userId} stopped speaking`);
   });
 
   setInterval(async () => {
     const now = Date.now();
-    client.guilds.cache.forEach(guild => {
-      const afkChannel = guild.channels.cache.get(afkChannelId);
-      if (!afkChannel) return;
-
-      guild.members.cache.forEach(async member => {
-        const voice = member.voice;
-        if (!voice?.channel || voice.channel.id === afkChannelId || member.user.bot) return;
-
-        const lastSeen = userActivity.get(member.id) || now;
-        const inactive = now - lastSeen;
-
-        if (inactive >= afkTimeoutMs) {
-          const msg = `Sianying <@${member.id}> lagi coli cuy!`; // also fixed undefined `userId`
-          try {
-            await mainChannel.send(msg);
-            await member.voice.setChannel(afkChannel);
-            //console.log(`Moved ${member.user.tag} to AFK channel.`);
-          } catch (err) {
-            console.warn(`Failed to move ${member.user.tag}:`, err.message);
-          }
+    for (const [userId, lastSpoke] of trackedUsers.entries()) {
+      const inactiveMs = now - lastSpoke;
+      if (inactiveMs > afkTimeoutMs) {
+        const guildMember = await voiceChannel.guild.members.fetch(userId).catch(() => null);
+        if (
+          guildMember &&
+          guildMember.voice.channelId === voiceChannel.id &&
+          guildMember.voice.channelId !== afkChannelId &&
+          !guildMember.user.bot
+        ) {
+          const afkChannel = voiceChannel.guild.channels.cache.get(afkChannelId);
+          if (!afkChannel) return;
+          //console.log(`[AFK MOVE] Moving ${guildMember.user.tag} to AFK`);
+          await guildMember.voice.setChannel(afkChannel);
+          const msg = `Sianying <@${member.id}> lagi coli cuy!`;
+          await mainChannel.send(msg);
+          trackedUsers.delete(userId);
         }
-      });
-    });
-  }, checkIntervalMs);
+      }
+    }
+  }, 10_000);
+
+  connection.on('stateChange', (oldState, newState) => {
+    if (newState.status === VoiceConnectionStatus.Destroyed) {
+      //console.log('[CLEANUP] Voice connection destroyed, clearing tracked users.');
+      trackedUsers.clear();
+    }
+  });
 }
