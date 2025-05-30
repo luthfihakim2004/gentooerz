@@ -14,7 +14,7 @@ export default {
     await interaction.reply({
       //flags: MessageFlags.Ephemeral,
       content: [
-        `🤖 **Gentooerz** Bot Status by **Kintil Master** a.k.a **Leich** a.k.a ytta`,
+        `🤖 **Gentooerz** by **<@328317837904969729>**`,
         `⏱ Uptime: ${uptime}`,
         `⚙️ Mode: ${passive ? 'Passive' : 'Active'}`,
         `🧠 Version: ${process.env.npm_package_version || 'dev'}`,
