@@ -53,7 +53,7 @@ export async function monitorVoice(client, member, afkChannelId) {
           if (!afkChannel) return;
           //console.log(`[AFK MOVE] Moving ${guildMember.user.tag} to AFK`);
           await guildMember.voice.setChannel(afkChannel);
-          const msg = `Sianying <@${member.id}> lagi coli cuy!`;
+          const msg = `Sianying <@${userId}> lagi coli cuy!`;
           await mainChannel.send(msg);
           trackedUsers.delete(userId);
         }
