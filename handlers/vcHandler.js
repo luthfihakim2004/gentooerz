@@ -41,6 +41,8 @@ export async function monitorVoice(client, member, afkChannelId) {
     const now = Date.now();
     for (const [userId, lastSpoke] of trackedUsers.entries()) {
       const inactiveMs = now - lastSpoke;
+
+      //AFK logic
       if (inactiveMs > afkTimeoutMs) {
         const guildMember = await voiceChannel.guild.members.fetch(userId).catch(() => null);
         if (
