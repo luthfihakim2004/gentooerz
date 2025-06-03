@@ -1,11 +1,23 @@
 export const config = {
-  passive: false, // initial state
+  spam: true,
+  urlScan: true,
 };
 
-export function setPassiveMode(value) {
-  config.passive = value;
+export function enableModule(name) {
+  if (config.hasOwnProperty(name)) {
+    config[name] = true;
+  }
 }
 
-export function getPassiveMode() {
-  return config.passive;
+export function disableModule(name) {
+  if (config.hasOwnProperty(name)) {
+    config[name] = false;
+  }
+}
+
+export function switchState(name) {
+  config[name] = !config[name];
+}
+export function getConfig() {
+  return {...config};
 }
