@@ -1,53 +1,48 @@
-import { handleSelectMenu } from '../handlers/selectHandler.js';
-import { InteractionType, StringSelectMenuInteraction, ComponentType } from 'discord.js';
+import { isAdmin } from '../utils/permissions.js';
+import { InteractionType } from 'discord.js';
 import { switchState, getConfig } from '../config.js';
-import { client } from '../client.js';
-import { StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder } from 'discord.js';
+import { ButtonBuilder, ButtonStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 
 export default {
   name: 'interactionCreate',
   once: false,
   async execute(client, interaction) {
-    if (interaction.customId === 'security') {
-      const allModules = ['spam', 'urlScan'];
-
-      for (const module of allModules) {
-        if (interaction.values.includes(module)) {
-          switchState(module);
-        }
+    if (interaction.isButton()){
+      if (!isAdmin(interaction)) {
+        return interaction.reply({ content: '🚫 STOP! Mau ngapain anda!?', flags: MessageFlags.Ephemeral });
       }
+      const module = interaction.customId;
+      if (['spam', 'urlScan'].includes(module)) {
+        switchState(module);
+      
+        const config = getConfig();
 
-      const currentConfig = getConfig();
-      const statusLines = allModules.map(module => {
-        const label = module === 'spam' ? 'Anti Spam' : 'URL Scanner';
-        const enabled = currentConfig[module] ? '✅' : '❌';
-        return `${label}: ${enabled}`;
-      }).join('\n');;
-
-      const updatedMenu = new StringSelectMenuBuilder()
-        .setCustomId('security')
-        .setPlaceholder('Select security modules.')
-        .setMinValues(0)
-        .setMaxValues(allModules.length)
-        .addOptions(
-          new StringSelectMenuOptionBuilder()
+      // Rebuild button row
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('spam')
             .setLabel('Anti Spam')
-            .setDescription('Detects repeated or spammy messages')
-            .setValue('spam'),
-          new StringSelectMenuOptionBuilder()
+            .setStyle(config.spam ? ButtonStyle.Success : ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId('urlScan')
             .setLabel('URL Scanner')
-            .setDescription('Scans messages that contain links.')
-            .setValue('urlScan'),
+            .setStyle(config.urlScan ? ButtonStyle.Success : ButtonStyle.Danger)
         );
 
-      const updatedRow = new ActionRowBuilder().addComponents(updatedMenu);
+        // Rebuild updated status message
+        const allModules = ['spam', 'urlScan'];
+        const statusLines = allModules.map(module => {
+          const label = module === 'spam' ? 'Anti Spam' : 'URL Scanner';
+          const enabled = config[module] ? '✅' : '❌';
+          return `${label}: ${enabled}`;
+        }).join('\n');
 
-      await interaction.update({
-        content: `🔒 **Security Module Status**\n${statusLines}`,
-        components: [updatedRow],
-      });
-
-      return;
+        await interaction.update({
+          content: `🔒 **Security Module Status**\n${statusLines}`,
+          components: [row],
+        });
+        return;
+      }
     }
 
     if (interaction.type !== InteractionType.ApplicationCommand) return;

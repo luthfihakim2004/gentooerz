@@ -1,9 +1,10 @@
 import 'dotenv/config';
-import { client } from './client.js';
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import pkg from 'discord.js';
+import path from 'path';
+import { client } from './client.js';
+import { fileURLToPath } from 'url';
+
 const { Collection } = pkg;
 
 client.commands = new Collection();
