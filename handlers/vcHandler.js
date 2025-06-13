@@ -7,7 +7,7 @@ import {
   VoiceConnectionStatus
 } from '@discordjs/voice';
 
-const afkTimeoutMs = 1 * 10 * 1000;
+const afkTimeoutMs = 30 * 60 * 1000;
 const trackedUsers = new Map(); // userId => lastSpokeTimestamp
 
 export async function monitorVoice(client, member, afkChannelId) {
