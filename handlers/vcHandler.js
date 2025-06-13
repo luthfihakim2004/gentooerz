@@ -7,7 +7,7 @@ import {
   VoiceConnectionStatus
 } from '@discordjs/voice';
 
-const afkTimeoutMs = 60 * 60 * 1000;
+const afkTimeoutMs = 1 * 10 * 1000;
 const trackedUsers = new Map(); // userId => lastSpokeTimestamp
 
 export async function monitorVoice(client, member, afkChannelId) {
@@ -15,6 +15,12 @@ export async function monitorVoice(client, member, afkChannelId) {
   const mainChannel = await client.channels.fetch(process.env.GENERAL_ROOM);
   if (!voiceChannel) return;
 
+  const existing = getVoiceConnection(member.guild.id);
+  if (existing && existing.state.status !== VoiceConnectionStatus.Destroyed) {
+    existing.destroy(); // Only destroy if not already destroyed
+  }
+
+  
   // Join the same VC
   const connection = joinVoiceChannel({
     channelId: voiceChannel.id,
@@ -24,7 +30,13 @@ export async function monitorVoice(client, member, afkChannelId) {
     selfMute: true,
   });
 
-  await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
+ // try {
+ //   // Wait for connection to become ready within 20 seconds
+ //   await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+ // } catch (error) {
+ //   connection.destroy(); // clean up
+ //   throw new Error(`Voice connection failed: ${error.message}`);
+ // }
 
   const receiver = connection.receiver;
 
@@ -55,7 +67,7 @@ export async function monitorVoice(client, member, afkChannelId) {
           if (!afkChannel) return;
           //console.log(`[AFK MOVE] Moving ${guildMember.user.tag} to AFK`);
           await guildMember.voice.setChannel(afkChannel);
-          const msg = `Sianying <@${userId}> lagi coli cuy!`;
+          const msg = `<@${userId}> terdeteksi sedang coli!!!`;
           await mainChannel.send(msg);
           trackedUsers.delete(userId);
         }

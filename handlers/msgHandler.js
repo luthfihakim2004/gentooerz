@@ -14,6 +14,8 @@ const NOTIFY_COOLDOWN = 60 * 60 * 1000;
 export async function handleMessage(message) {
   if (message.author.bot || message.webhookId) return;
 
+  const whitelist = getWhitelist();
+  const blacklist = getBlacklist();
   const configEnabled = getConfig();
   const alertChannel = await message.client.channels.fetch(process.env.LOG_CHANNEL_ID);
   const guildId = message.guild.id;
@@ -25,8 +27,15 @@ export async function handleMessage(message) {
     const urls = extractUrls(message);
     if (urls.length > 0) {
       for (const url of urls) {
+        if (whitelist.some(prefix => url.startsWith(prefix))) {
+          continue;
+        }
+        if (blacklist.some(prefix => url.startsWith(prefix))) {
+          await safeDelete(message);
+          continue;
+        }
         const res = await analyzeUrl(url);
-        if (res.malicious > 0 || res.suspicious > 3) {
+        if (res.malicious > 3 || res.suspicious > 3) {
           await safeDelete(message);
           incrementDeletedMessages();
 
