@@ -4,7 +4,7 @@ import { getWhitelist, getBlacklist, normalize } from './filters.js';
 const VT_API_KEY = process.env.VIRUSTOTAL_KEY;
 const cache = new Map();
 
-const CACHE_DURATION_MS = 60 * 60 * 1000;
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000;
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of cache.entries()) {
