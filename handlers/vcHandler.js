@@ -1,13 +1,10 @@
 import {
   joinVoiceChannel,
   getVoiceConnection,
-  EndBehaviorType,
-  entersState,
-  VoiceReceiver,
   VoiceConnectionStatus
 } from '@discordjs/voice';
 
-const afkTimeoutMs = 60 * 60 * 1000;
+const afkTimeoutMs = 30 * 60 * 1000;
 const trackedUsers = new Map(); // userId => lastSpokeTimestamp
 
 export async function monitorVoice(client, member, afkChannelId) {
@@ -15,6 +12,12 @@ export async function monitorVoice(client, member, afkChannelId) {
   const mainChannel = await client.channels.fetch(process.env.GENERAL_ROOM);
   if (!voiceChannel) return;
 
+  const existing = getVoiceConnection(member.guild.id);
+  if (existing && existing.state.status !== VoiceConnectionStatus.Destroyed) {
+    existing.destroy(); // Only destroy if not already destroyed
+  }
+
+  
   // Join the same VC
   const connection = joinVoiceChannel({
     channelId: voiceChannel.id,
@@ -23,8 +26,6 @@ export async function monitorVoice(client, member, afkChannelId) {
     selfDeaf: false,
     selfMute: true,
   });
-
-  await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
 
   const receiver = connection.receiver;
 
@@ -55,7 +56,7 @@ export async function monitorVoice(client, member, afkChannelId) {
           if (!afkChannel) return;
           //console.log(`[AFK MOVE] Moving ${guildMember.user.tag} to AFK`);
           await guildMember.voice.setChannel(afkChannel);
-          const msg = `<@${userId}> is AFK!`;
+          const msg = `<@${userId}> AFK detected!`;
           await mainChannel.send(msg);
           trackedUsers.delete(userId);
         }

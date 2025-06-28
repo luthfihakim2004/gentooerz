@@ -3,7 +3,7 @@ import { detectSpam } from '../utils/detector.js';
 import { TTLMap } from '../utils/ttlMap.js';
 import { getWhitelist, getBlacklist } from '../utils/filters.js';
 import { incrementDeletedMessages } from '../utils/stats.js';
-import { getPassiveMode } from '../config.js';
+import { getConfig } from '../config.js';
 
 const messageBuckets = new TTLMap();
 const notifiedGuilds = new TTLMap();
@@ -12,45 +12,53 @@ const SAME_MSG_THRESHOLD = 3;
 const NOTIFY_COOLDOWN = 60 * 60 * 1000;
 
 export async function handleMessage(message) {
-  if (message.author.bot || !message.guild) return;
+  if (message.author.bot || message.webhookId) return;
 
+  const whitelist = getWhitelist();
+  const blacklist = getBlacklist();
+  const configEnabled = getConfig();
   const alertChannel = await message.client.channels.fetch(process.env.LOG_CHANNEL_ID);
   const guildId = message.guild.id;
   const userId = message.author.id;
   const now = Date.now();
   const content = message.content.trim();
 
-  const urls = extractUrls(message);
-  if (urls.length > 0) {
-    for (const url of urls) {
-      const res = await analyzeUrl(url);
-      if (res.malicious > 0 || res.suspicious > 3) {
-        if (!getPassiveMode()) {
+  if (configEnabled.urlScan) {
+    const urls = extractUrls(message);
+    if (urls.length > 0) {
+      for (const url of urls) {
+        if (whitelist.some(prefix => url.startsWith(prefix))) {
+          continue;
+        }
+        if (blacklist.some(prefix => url.startsWith(prefix))) {
+          await safeDelete(message);
+          continue;
+        }
+        const res = await analyzeUrl(url);
+        if (res.malicious > 3 || res.suspicious > 3) {
           await safeDelete(message);
           incrementDeletedMessages();
-        }
-        const msg = `${
-          getPassiveMode() ? '🔍 [Passive Mode]' : '🚨'
-        } Malicious URL from <@${userId}>: ${url} at <#${message.channel.id}>`;
 
-        await alertChannel.send(msg);
-        return;
+          const msg = `🚨 Malicious URL from <@${userId}>: ${url} in <#${message.channel.id}>`;
+          await alertChannel.send(msg);
+          return; // Stop further checks
+        }
       }
     }
   }
 
-  if (!messageBuckets.has(guildId)) messageBuckets.set(guildId, []);
-  const bucket = messageBuckets.get(guildId);
+  // ✅ Anti-Spam Feature
+  if (configEnabled.spam) {
+    if (!messageBuckets.has(guildId)) messageBuckets.set(guildId, []);
+    const bucket = messageBuckets.get(guildId);
 
-  bucket.push({ userId, content, messageId: message.id, channelId: message.channel.id, timestamp: now });
-  const recent = bucket.filter(entry => now - entry.timestamp < TIME_WINDOW);
-  messageBuckets.set(guildId, recent, TIME_WINDOW);
+    bucket.push({ userId, content, messageId: message.id, channelId: message.channel.id, timestamp: now });
+    const recent = bucket.filter(entry => now - entry.timestamp < TIME_WINDOW);
+    messageBuckets.set(guildId, recent, TIME_WINDOW);
 
-  const { isSpam, messagesToDelete } = detectSpam(recent, userId, content, SAME_MSG_THRESHOLD);
-  if (isSpam) {
-    const deletedIds = new Set();
-
-    if (!getPassiveMode()) {
+    const { isSpam, messagesToDelete } = detectSpam(recent, userId, content, SAME_MSG_THRESHOLD);
+    if (isSpam) {
+      const deletedIds = new Set();
       for (const entry of messagesToDelete) {
         if (deletedIds.has(entry.messageId)) continue;
         try {
@@ -69,16 +77,14 @@ export async function handleMessage(message) {
           }
         }
       }
-    }
 
-    const lastNotified = notifiedGuilds.get(guildId) || 0;
-    if (now - lastNotified > NOTIFY_COOLDOWN) {
-      const alertMsg = `${
-        getPassiveMode() ? '🔍 [Passive Mode]' : '🚨'
-      } Spam detected by <@${userId}> in guild **${message.guild.name}** at <#${message.channel.id}>`;
+      const lastNotified = notifiedGuilds.get(guildId) || 0;
+      if (now - lastNotified > NOTIFY_COOLDOWN) {
+        const alertMsg = `🛑 Spam detected from <@${userId}> in guild **${message.guild.name}** at <#${message.channel.id}>`;
 
-      await alertChannel.send(alertMsg);
-      notifiedGuilds.set(guildId, now);
+        await alertChannel.send(alertMsg);
+        notifiedGuilds.set(guildId, now);
+      }
     }
   }
 }
@@ -107,9 +113,9 @@ async function safeDelete(message) {
       await message.delete();
       incrementDeletedMessages();
     } catch (err) {
-      console.error(`❌ Failed to delete message from ${message.author.id}: ${err.message}`);
+      console.error(`❌ Failed to delete message from ${message.user.id}: ${err.message}`);
     }
   } else {
-    console.warn(`⚠️ Message from ${message.author.id} not deletable.`);
+    console.warn(`⚠️ Message from ${message.user.id} not deletable.`);
   }
 }

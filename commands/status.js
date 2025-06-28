@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { getPassiveMode } from '../config.js';
+//import { getPassiveMode } from '../config.js';
 import { botStats } from '../utils/stats.js'; // you’ll make this below
 import { duration } from '../utils/time.js'; // optional helper
 
@@ -8,7 +8,7 @@ export default {
     .setName('status')
     .setDescription('Show bot status and runtime info'),
   async execute(interaction) {
-    const passive = getPassiveMode();
+    //const passive = getPassiveMode();
     const uptime = duration(process.uptime() * 1000); // uptime in milliseconds
 
     await interaction.reply({

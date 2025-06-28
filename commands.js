@@ -20,7 +20,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 try {
   console.log('🔁 Refreshing slash commands...');
   await rest.put(
-    Routes.applicationCommands(process.env.APP_ID),
+    //Routes.applicationCommands(process.env.APP_ID),
     Routes.applicationGuildCommands(process.env.APP_ID, process.env.GUILD_ID),
     { body: commands }
   );

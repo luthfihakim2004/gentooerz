@@ -6,14 +6,9 @@ My Discord bot to prevent spam and malicious link. This project is still under d
 Below is a basic overview of the project structure:
 
 ```
-├── utils
-│   ├── detector.js
-│   ├── logger.js
-│   ├── ttlMap.js
-│   ├── urlAnalyzer.js
-├── handlers
-│   ├── msgHandler.js  
-├── .env
+├── utils/
+├── events/
+├── handlers/
 ├── main.js      -> main file of the bot
 ├── client.js
 ├── package.json
