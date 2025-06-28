@@ -1,5 +1,6 @@
 import { isAdmin } from '../utils/permissions.js';
 import { InteractionType } from 'discord.js';
+import { logToDiscord } from '../utils/logger.js';
 import { switchState, getConfig } from '../config.js';
 import { ButtonBuilder, ButtonStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 
@@ -23,10 +24,17 @@ export default {
         return;
       }
 
+      const userId = interaction.user.id;
       const module = interaction.customId;
       if (['spam', 'urlScan'].includes(module)) {
         switchState(module);
         const config = getConfig();
+
+        if(config[module] == false){
+          logToDiscord(`Module ${module} turned off by <@${userId}>`);
+        } else {
+          logToDiscord(`Module ${module} has been turned back on`)
+        }
 
         // ♻️ Rebuild button row
         const row = new ActionRowBuilder().addComponents(
