@@ -10,6 +10,7 @@
   },
   "scripts": {
     "start": "node main.js",
+    "register": "node commands.js",
     "dev": "nodemon main.js"
   },
   "author": "Shay DeWael",

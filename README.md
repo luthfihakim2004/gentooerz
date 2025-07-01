@@ -20,7 +20,7 @@ Below is a basic overview of the project structure:
 
 Before you start, you'll need to install [NodeJS](https://nodejs.org/en/download/) and [create a Discord app](https://discord.com/developers/applications) with the proper permissions:
 - `applications.commands`
-- `bot` (with Send Messages enabled)
+- `bot` (with necessary permissions)
 
 
 Configuring the app is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
@@ -34,7 +34,7 @@ npm install
 
 ### Install slash commands
 
-The commands for the example app are set up in `commands.js`. All of the commands in the `ALL_COMMANDS` array at the bottom of `commands.js` will be installed when you run the `register` command configured in `package.json`:
+The commands are set up in [commands](https://github.com/luthfihakim2004/gentooerz/tree/main/commands) directory. All of the command files in the directory need to be registered first by running the `register` command configured in `package.json`:
 
 ```
 npm run register
@@ -42,7 +42,7 @@ npm run register
 
 ### Run the app
 
-After your credentials are added, go ahead and run the app:
+After your the environment is ready, go ahead and run the app:
 
 ```
 node main.js
