@@ -42,14 +42,14 @@ export default {
     const attachment = new AttachmentBuilder(buffer, { name: 'bye.jpg' });
 
     const embed = new EmbedBuilder()
-      .setAuthor({ name: 'Ketua JMK69' })
+      .setAuthor({ name: 'Good Bye :wave: :wave:' })
       .setColor('#ffffff')
       .setTitle('さようなら')
-      .setDescription(`${member.user.tag}\n\nNAJIS BAPERAN KAYAK BRO OIT`)
+      .setDescription(`${member.user.tag}\n\nCYA`)
       .setImage('attachment://bye.jpg');
 
     channel.send({ 
-      content: `Yah Si <@${member.id}> cabut, ada masalah apa sih wirrr?? Dah dibilangin jgn kayak bro oit juga`,
+      content: `SAD NEWS! <@${member.id}> is leaving the ${client.guild.name}`,
       embeds: [embed], 
       files: [attachment]
     });

@@ -17,14 +17,14 @@ export default {
     const banner = new AttachmentBuilder(path.join(__dirname, '..', 'assets', 'welcome.gif'), { name: 'welcome.gif' });
 
     const embed = new EmbedBuilder()
-      .setAuthor({ name: 'Ketua JMK69' })
+      .setAuthor({ name: 'Greeting' })
       .setColor('#ffffff')
-      .setTitle('Welcome Deck!')
-      .setDescription(`${member.user.tag}\n\nMAY ALL THE GAYS BURN IN HELL`)
+      .setTitle('Welcome!')
+      .setDescription(`${member.user.tag}\n\nMAY ALL THE BLESS WITH U`)
       .setImage('attachment://welcome.gif');
 
     channel.send({ 
-      content: `Selamat Datang Wir <@${member.id}>, Lu adalah Jawir ke ${count} di server ini, Semoga Betah gk kyk Bro Oit`,
+      content: `Welcome <@${member.id}>, u are the ${count} member here.`,
       embeds: [embed], 
       files: [banner]
     });
