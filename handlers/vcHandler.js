@@ -66,7 +66,7 @@ export async function monitorVoice(client, member, afkChannelId) {
           const afkChannel = voiceChannel.guild.channels.cache.get(afkChannelId);
           if (!afkChannel) return;
           //console.log(`[AFK MOVE] Moving ${guildMember.user.tag} to AFK`);
-          await guildMember.voice.setChannel(afkChannel);
+          await guildMember.voice.disconnect('coli');
           const msg = `<@${userId}> terdeteksi sedang coli!!!`;
           await mainChannel.send(msg);
           trackedUsers.delete(userId);
