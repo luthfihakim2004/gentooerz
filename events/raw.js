@@ -5,6 +5,6 @@ export default {
   once: false,
   async execute(d) {
     client.lavalink.sendRawData(d);
-    console.log('[RAW]', d.t);
+    //console.log('[RAW]', d.t);
   }
 };
