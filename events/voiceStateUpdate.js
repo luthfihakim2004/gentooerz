@@ -20,6 +20,7 @@ export default {
       }
     }
 
+    client.lavalink.voiceStateUpdate(oldState, newState);
     //const userList = [...oldState.members].map(m => `${m.user.tag} (${m.id})`).join('\n');
 
     //console.log(oldState.members);

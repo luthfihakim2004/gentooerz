@@ -30,4 +30,15 @@ for (const file of eventFiles) {
   }
 }
 
+const lavaEventFiles = fs.readdirSync(path.join(__dirname, 'lavaEvents')).filter(f => f.endsWith('.js'));
+for (const file of lavaEventFiles) {
+  const lavaEvent = await import(`./lavaEvents/${file}`);
+  // Each should export a function like `registerNodeEvents(client)`
+  if (typeof lavaEvent.registerNodeEvents === 'function') {
+    lavaEvent.registerNodeEvents(client);
+  } else if (typeof lavaEvent.registerPlayerEvents === 'function') {
+    lavaEvent.registerPlayerEvents(client);
+  }
+}
+
 client.login(process.env.DISCORD_TOKEN);
