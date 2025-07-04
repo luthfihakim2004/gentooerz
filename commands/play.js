@@ -49,7 +49,6 @@ export default {
 
     const track = search.tracks[0];
     await player.queue.add(track);
-    console.log(track);
 
     if (!player.playing && !player.paused) await player.play();
    // setTimeout(() => {
