@@ -13,7 +13,6 @@ My Discord bot to prevent spam and malicious link. This project is still under d
 Below is a basic overview of the project structure:
 
 ```
-<<<<<<< HEAD
 ├── assets/         # Static assets used by the bot (e.g. banners, icons)
 ├── commands/       # Slash and text command logic files
 ├── config/         # Configuration files (only for filtering url ATM)
@@ -25,13 +24,6 @@ Below is a basic overview of the project structure:
 ├── client.js       # Bot client setup
 ├── commands.js     # Bot commands registration file
 ├── main.js         # Main entry point of the bot
-=======
-├── utils/
-├── events/
-├── handlers/
-├── main.js      -> main file of the bot
-├── client.js
->>>>>>> 2c91eb4669b25fbf93cd8ce21dfbbe9568c2d1aa
 ├── package.json
 ├── README.md
 └── .gitignore
