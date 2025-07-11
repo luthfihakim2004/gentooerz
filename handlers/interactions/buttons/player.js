@@ -47,7 +47,7 @@ export async function playerBtn(client, interaction) {
   }
   
   if (interaction.customId === 'stop') {
-    await player.destroy(`Player has been stopped by ${interaction.user.id}`, false);
+    await player.destroy(`Player has been stopped by ${interaction.user.id}`, true);
     
     const updated = {
       title: `Player has been stopped by ${interaction.user.username}` 

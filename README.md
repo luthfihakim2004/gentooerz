@@ -2,33 +2,62 @@
 
 My Discord bot to prevent spam and malicious link. This project is still under development and testing on my discord server. Any feedback is welcome. 
 
-## Project structure
+## Features
+
+- Spam & malicious messages detection.
+- URL scanning with VirusTotal.
+- Modular & clean structure layout.
+- Lavalink Audio player with multiple sources based the server.
+
+## Project Structure
 Below is a basic overview of the project structure:
 
 ```
-├── utils
-│   ├── detector.js
-│   ├── logger.js
-│   ├── ttlMap.js
-│   ├── urlAnalyzer.js
-├── handlers
-│   ├── msgHandler.js  
+├── assets/         # Static assets used by the bot (e.g. banners, icons)
+├── commands/       # Slash and text command logic files
+├── config/         # Configuration files (only for filtering url ATM)
+├── events/         # Discord event listeners
+├── handlers/       # Discord command & event handlers logic 
+├── lavaEvents/     # Lavalink events handler for audio player
+├── utils/          # Utility functions
 ├── .env
-├── main.js      -> main file of the bot
-├── client.js
+├── client.js       # Bot client setup
+├── commands.js     # Bot commands registration file
+├── main.js         # Main entry point of the bot
 ├── package.json
 ├── README.md
 └── .gitignore
 ```
+## Prerequisites
+
+- [Node.js](https://nodejs.org/en/download/)
+- [Discord application & bot](https://discord.com/developers/applications) with necessary permissions.
+
+Configuring the discord app & bot is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
 
 ## Running app locally
 
-Before you start, you'll need to install [NodeJS](https://nodejs.org/en/download/) and [create a Discord app](https://discord.com/developers/applications) with the proper permissions:
-- `applications.commands`
-- `bot` (with Send Messages enabled)
+Before you start, ensure the prerequisites are fulfilled and you have setup the environment variables:
 
-
-Configuring the app is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
+```
+APP_ID=
+PORT=
+DISCORD_TOKEN=
+PUBLIC_KEY=
+VIRUSTOTAL_KEY=
+HEROKU_LOG=
+PASSIVE_MODE=
+AFK_ROOM=
+GENERAL_ROOM=
+GUILD_ID=
+LOG_CHANNEL_ID=
+WELCOME_CHANNEL_ID=
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+LAVALINK_HOST=
+LAVALINK_PORT=
+LAVALINK_SECRET=
+```
 
 ### Setup project
 
@@ -39,7 +68,7 @@ npm install
 
 ### Install slash commands
 
-The commands for the example app are set up in `commands.js`. All of the commands in the `ALL_COMMANDS` array at the bottom of `commands.js` will be installed when you run the `register` command configured in `package.json`:
+The commands for the app are set up in `commands.js`. All of the commands in the `ALL_COMMANDS` array at the bottom of `commands.js` will be installed when you run the `register` command configured in `package.json`:
 
 ```
 npm run register
@@ -47,7 +76,7 @@ npm run register
 
 ### Run the app
 
-After your credentials are added, go ahead and run the app:
+You can run the app directly by:
 
 ```
 node main.js
