@@ -4,7 +4,7 @@ import { logToDiscord } from '../utils/logger.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('join')
+    .setName('afk')
     .setDescription('Monitoring ur ass'),
 
   async execute(interaction) {

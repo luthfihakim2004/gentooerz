@@ -9,8 +9,8 @@ export async function cmdHandler(client, interaction) {
   } catch (error) {
     console.error('Command execution error:', error);
     const replyPayload = {
-      content: 'There was an error executing that command.',
       flags: MessageFlags.Ephemeral,
+      content: 'There was an error executing that command.',
     };
 
     try {

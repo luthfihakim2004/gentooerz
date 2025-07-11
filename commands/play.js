@@ -1,6 +1,7 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { MessageFlags, SlashCommandBuilder } from 'discord.js';
 import { availSources } from '../lavaEvents/nodes.js';
 import { client } from '../client.js';
+import { playerMenu } from '../utils/ui/player.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -24,14 +25,13 @@ export default {
   async execute(interaction) {
     const query = interaction.options.getString('query');
     const source = interaction.options.getString('source');
-    await interaction.deferReply();
-
+    
     if (!availSources.includes(source)){
-      return interaction.editReply('❌ Invalid source selected.');
+      return interaction.reply({ content: '❌ Invalid lavalink source selected.', flags: MessageFlags.Ephemeral });
     }
 
     const vc = interaction.member.voice.channel;
-    if (!vc) return interaction.editReply('❗ Join a voice channel first.');
+    if (!vc) return interaction.reply({ content: '❗ Join a voice channel first.', flags: MessageFlags.Ephemeral });
 
     const player = client.lavalink.createPlayer({
       guildId: interaction.guild.id,
@@ -43,36 +43,26 @@ export default {
     await player.connect(interaction.member.voice.channelId, { deaf: true });
 
     const search = await player.search({ query, source });
-
     if (!search || !search.tracks.length)
-      return interaction.editReply('❌ No results found.');
+      return interaction.reply('❌ No results found.');
 
     const track = search.tracks[0];
     await player.queue.add(track);
 
-    if (!player.playing && !player.paused) await player.play();
-   // setTimeout(() => {
-   //     console.log(player.queue.current);
-   //     console.log('Is playing:', player.playing);
-   //     console.log('Node VC status:', player.node.connectionStatus); // Should be CONNECTED
-   // }, 3000);
+    if (player.playing || player.paused){
+      return interaction.reply({ content: `Added ${track.info.title} to the queue.`, flags: MessageFlags.Ephemeral}); 
+    }
 
-    await interaction.editReply({
-      content: `🎶 **${track.info.title}** by *${track.info.author}* — Now playing!`,
-      embeds: [{
-        color: 0x1DB954,
-        title: track.info.title,
-        url: track.info.uri,
-        description: `by ${track.info.author}`,
-        thumbnail: { url: track.info.artworkUrl },
-        footer: { text: `Duration: ${(track.info.duration / 60000).toFixed(2)} mins` }
-      }]
-    });
+    await interaction.deferReply();
+    await player.play();
+    
+    const menuMsg = await interaction.followUp(playerMenu(track, interaction.user, player));
+    player.messageId = menuMsg.id;
   },
 
   autocomplete: async (interaction) => {
   const focusedValue = interaction.options.getFocused();
-  const choices = availSources; // from your Lavalink connection
+  const choices = availSources; 
 
   const filtered = choices
     .filter(choice => choice.toLowerCase().includes(focusedValue.toLowerCase()))
