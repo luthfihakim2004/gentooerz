@@ -37,13 +37,7 @@ Configuring the discord app & bot is covered in detail in the [getting started g
 
 ## Running app locally
 
-<<<<<<< HEAD
 Before you start, ensure the prerequisites are fulfilled and you have setup the environment variables:
-=======
-Before you start, you'll need to install [NodeJS](https://nodejs.org/en/download/) and [create a Discord app](https://discord.com/developers/applications) with the proper permissions:
-- `applications.commands`
-- `bot` (with necessary permissions)
->>>>>>> 2c91eb4669b25fbf93cd8ce21dfbbe9568c2d1aa
 
 ```
 APP_ID=
@@ -74,11 +68,8 @@ npm install
 
 ### Install slash commands
 
-<<<<<<< HEAD
-The commands for the app are set up in `commands.js`. All of the commands in the `ALL_COMMANDS` array at the bottom of `commands.js` will be installed when you run the `register` command configured in `package.json`:
-=======
-The commands are set up in [commands](https://github.com/luthfihakim2004/gentooerz/tree/main/commands) directory. All of the command files in the directory need to be registered first by running the `register` command configured in `package.json`:
->>>>>>> 2c91eb4669b25fbf93cd8ce21dfbbe9568c2d1aa
+The commands for the app are set up in `commands.js`. All of the commands in the `commands` directory will be registered on the server when you run the `register` command configured in `package.json`:
+
 
 ```
 npm run register
@@ -86,11 +77,7 @@ npm run register
 
 ### Run the app
 
-<<<<<<< HEAD
 You can run the app directly by:
-=======
-After your the environment is ready, go ahead and run the app:
->>>>>>> 2c91eb4669b25fbf93cd8ce21dfbbe9568c2d1aa
 
 ```
 node main.js
