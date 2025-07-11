@@ -1,5 +1,4 @@
 import { getVoiceConnection } from '@discordjs/voice';
-import { logToDiscord } from '../utils/logger.js';
 
 export default {
   name: 'voiceStateUpdate',
@@ -21,9 +20,6 @@ export default {
     }
 
     client.lavalink.voiceStateUpdate(oldState, newState);
-    //const userList = [...oldState.members].map(m => `${m.user.tag} (${m.id})`).join('\n');
-
-    //console.log(oldState.members);
     
     const botMember = channel.members.get(client.user.id);
     if (!botMember || channel.members.size <= 1) {

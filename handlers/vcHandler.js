@@ -1,9 +1,6 @@
 import {
   joinVoiceChannel,
   getVoiceConnection,
-  EndBehaviorType,
-  entersState,
-  VoiceReceiver,
   VoiceConnectionStatus
 } from '@discordjs/voice';
 
@@ -29,14 +26,6 @@ export async function monitorVoice(client, member, afkChannelId) {
     selfDeaf: false,
     selfMute: true,
   });
-
- // try {
- //   // Wait for connection to become ready within 20 seconds
- //   await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
- // } catch (error) {
- //   connection.destroy(); // clean up
- //   throw new Error(`Voice connection failed: ${error.message}`);
- // }
 
   const receiver = connection.receiver;
 
@@ -66,8 +55,8 @@ export async function monitorVoice(client, member, afkChannelId) {
           const afkChannel = voiceChannel.guild.channels.cache.get(afkChannelId);
           if (!afkChannel) return;
           //console.log(`[AFK MOVE] Moving ${guildMember.user.tag} to AFK`);
-          await guildMember.voice.disconnect('coli');
-          const msg = `<@${userId}> terdeteksi sedang coli!!!`;
+          await guildMember.voice.setChannel(afkChannel);
+          const msg = `<@${userId}> AFK detected!`;
           await mainChannel.send(msg);
           trackedUsers.delete(userId);
         }

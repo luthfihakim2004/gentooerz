@@ -18,7 +18,6 @@ export default {
       content: [
         `🤖 **Gentooerz** by **<@328317837904969729>**`,
         `⏱ Uptime: ${uptime}`,
-        //`⚙️ Mode: ${passive ? 'Passive' : 'Active'}`,
         `🧠 Version: ${process.env.npm_package_version || 'dev'}`,
         `🗑 Messages Deleted: ${botStats.deletedMessages}`,
         `🎶 Lavalink Status: ${mainnode.connectionStatus}`
