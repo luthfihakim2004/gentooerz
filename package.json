@@ -2,7 +2,7 @@
   "name": "gentooerz",
   "private": true,
   "version": "1.0.0",
-  "description": "Discord example app",
+  "description": "Discord bot template",
   "main": "app.js",
   "type": "module",
   "engines": {
@@ -13,7 +13,7 @@
     "register": "node commands.js",
     "dev": "nodemon main.js"
   },
-  "author": "Shay DeWael",
+  "author": "Luthfi Hakim",
   "license": "MIT",
   "dependencies": {
     "@crawlo/ttlmap": "^1.0.7",

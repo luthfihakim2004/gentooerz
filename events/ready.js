@@ -16,8 +16,8 @@ export default {
     logToDiscord(`Bot is now online as ${client.user.tag}`);
 
     try {
-      // Try to connect to the node
-      mainnode.connect();
+      // Automatically called with init()
+      //mainnode.connect();
 
     } catch (error) {
       console.log(`❌ Test node failed to connect. Error: ${error.message}`);
