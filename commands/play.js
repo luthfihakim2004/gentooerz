@@ -40,6 +40,7 @@ export default {
       selfDeaf: true,
       volume: 100
     });
+    console.log("player created...")
     await player.connect(interaction.member.voice.channelId, { deaf: true });
 
     const search = await player.search({ query, source });
@@ -48,6 +49,7 @@ export default {
 
     const track = search.tracks[0];
     await player.queue.add(track);
+    console.log("song added....")
 
     if (player.playing || player.paused){
       return interaction.reply({ content: `Added ${track.info.title} to the queue.`, flags: MessageFlags.Ephemeral}); 

@@ -6,20 +6,20 @@ export function registerPlayerEvents(client) {
 
   lavalink
     .on("playerCreate", (player) => {
-      //console.log(`🟢 Player created for guild ${player.guildId}`);
+      console.log(`🟢 Player created for guild ${player.guildId}`);
     })
     .on("playerUpdate", (oldPlayer, newPlayer) => {
       setPlayerData(newPlayer.guildId, newPlayer.toJSON());
     })
     .on("playerDestroy", (player, reason) => {
       delPlayerData(player.guildId);
-      //console.log(`🛑 Player destroyed for guild ${player.guildId}: ${reason}`);
+      console.log(`🛑 Player destroyed for guild ${player.guildId}: ${reason}`);
     })
     .on("trackStart", (player, track) => {
-      //console.log(`🎶 Track started in ${player.guildId}: ${track.info.title}`);
+      console.log(`🎶 Track started in ${player.guildId}: ${track.info.title}`);
     })
     .on("trackEnd", async (player, track, payload) => {
-      //console.log(`⏹️ Track ended in ${player.guildId}: ${track.info.title}`);
+      console.log(`⏹️ Track ended in ${player.guildId}: ${track.info.title}`);
       
       const nextTrack = player.queue.current;
       if (!nextTrack) return;

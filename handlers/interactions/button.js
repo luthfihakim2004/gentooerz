@@ -1,11 +1,12 @@
 import { playerBtn } from './buttons/player.js';
 import { secBtn } from './buttons/security.js';
-import { MessageFlags } from 'discord.js';
+import { MessageFlags, ButtonInteraction } from 'discord.js';
 
 export async function btnHandler(client, interaction) {
   const musicButtons = ['play-pause', 'loop', 'next', 'rewind', 'stop'];
   const securityButtons = ['spam', 'urlScan'];
 
+  console.log("entering btn handler")
   if (musicButtons.includes(interaction.customId)) {
     return playerBtn(client, interaction);
   }

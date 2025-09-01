@@ -10,16 +10,16 @@ export function registerNodeEvents(client) {
       // console.debug(node.id, ":: RAW ::", payload);
     })
     .on("disconnect", (node, reason) => {
-      console.log(`${node.id} :: DISCONNECT ::`, reason);
+      //console.log(`${node.id} :: DISCONNECT ::`, reason);
     })
     .on("connect", async (node) => {
-      console.log(`${node.id} :: CONNECTED ::`);
+      //console.log(`${node.id} :: CONNECTED ::`);
       availSources = await loadSources(node);
       node.updateSession(true, 360e3);
       //console.log(availSources)
     })
     .on("reconnecting", (node) => {
-      console.log(`${node.id} :: RECONNECTING ::`);
+      //console.log(`${node.id} :: RECONNECTING ::`);
     })
     .on("create", (node) => {
       console.log(`${node.id} :: CREATED ::`);

@@ -12,6 +12,8 @@ export default {
     const uptime = duration(process.uptime() * 1000); // uptime in milliseconds
     
     //console.log(await testnode.fetchInfo())
+    
+    console.log(interaction.guildId)
 
     await interaction.reply({
       flags: MessageFlags.Ephemeral,

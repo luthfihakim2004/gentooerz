@@ -3,6 +3,7 @@ import { playerMenu } from '../../../utils/ui/player.js';
 
 export async function playerBtn(client, interaction) {
   const player = client.lavalink.getPlayer(interaction.guildId);
+  console.log(interaction.guildId)
   if (!player) {
     return interaction.reply({ content: '❌ No player found.', flags: MessageFlags.Ephemeral });
   }
