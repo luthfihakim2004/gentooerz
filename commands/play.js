@@ -1,5 +1,5 @@
 import { MessageFlags, SlashCommandBuilder } from 'discord.js';
-import { availSources } from '../lavaEvents/nodes.js';
+//import { availSources } from '../lavaEvents/nodes.js';
 import { client } from '../client.js';
 import { playerMenu } from '../utils/ui/player.js';
 
