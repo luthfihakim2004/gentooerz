@@ -1,6 +1,6 @@
 import { ActivityType } from 'discord.js';
 import { logToDiscord } from '../utils/logger.js';
-import { mainnode } from '../utils/audio.js';
+//import { mainnode } from '../utils/audio.js';
 
 export default {
   name: 'ready',
@@ -17,7 +17,7 @@ export default {
 
     try {
       // Try to connect to the node
-      mainnode.connect();
+      //mainnode.connect();
 
     } catch (error) {
       console.log(`❌ Test node failed to connect. Error: ${error.message}`);
