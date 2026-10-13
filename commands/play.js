@@ -12,9 +12,9 @@ export default {
         .setDescription('Select available sources')
         .setRequired(true)
         .setAutocomplete(true)
-        .addChoices(
-          ...availSources
-        )
+        //.addChoices(
+        //  ...availSources
+        //)
     )
     .addStringOption(option =>
       option.setName('query')
