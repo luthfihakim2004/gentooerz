@@ -27,9 +27,15 @@ export function registerNodeEvents(client) {
     .on("destroy", (node) => {
       console.log(`${node.id} :: DESTROYED ::`);
     })
-    .on("error", (node, error, payload) => {
-      console.error(`${node.id} :: ERROR ::`, error);
-      console.error("Payload:", payload);
+    .on("error", (...args) => {
+        console.error("[Lavalink] NodeManager error:");
+        for(const arg of args){
+            if (arg instanceof Error){
+                console.error(arg.stack);
+            } else {
+                console.dir(arg, { depth: 2 });
+            }
+        }
     })
     .on("resumed", async (node, payload, fetchedPlayers) => {
       for (const data of fetchedPlayers) {

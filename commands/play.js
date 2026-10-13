@@ -23,43 +23,53 @@ export default {
     ),
 
   async execute(interaction) {
-    const query = interaction.options.getString('query');
-    const source = interaction.options.getString('source');
-    
-    if (!availSources.includes(source)){
-      return interaction.reply({ content: '❌ Invalid lavalink source selected.', flags: MessageFlags.Ephemeral });
+    try{
+      await interaction.deferReply();
+
+      const query = interaction.options.getString('query');
+      const source = interaction.options.getString('source');
+      
+      if (!availSources.includes(source)){
+        return interaction.reply({ content: '❌ Invalid lavalink source selected.', flags: MessageFlags.Ephemeral });
+      }
+
+      const vc = interaction.member.voice.channel;
+      if (!vc) return interaction.reply({ content: '❗ Join a voice channel first.', flags: MessageFlags.Ephemeral });
+
+      const player = client.lavalink.createPlayer({
+        guildId: interaction.guild.id,
+        voiceChannelId: interaction.member.voice.channelId,
+        textChannelId: interaction.channel.id,
+        selfDeaf: true,
+        volume: 100
+      });
+      //console.log("player created...")
+      await player.connect(interaction.member.voice.channelId, { deaf: true });
+
+      const search = await player.search({ query, source });
+      if (!search || !search.tracks.length)
+        return interaction.reply('❌ No results found.');
+
+      const track = search.tracks[0];
+      await player.queue.add(track);
+
+      if (player.playing || player.paused){
+        return interaction.editReply({ content: `Added ${track.info.title} to the queue.`, flags: MessageFlags.Ephemeral}); 
+      }
+
+      await player.play();
+      
+      //const menuMsg = await interaction.followUp(playerMenu(track, interaction.user, player));
+      const menuMsg = await interaction.editReply(playerMenu(track, interaction.user, player));
+
+      player.messageId = menuMsg.id;
+    }catch(err){
+      //console.error("❌ /play failed:", err);
+
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply('❌ Failed to play the track.');
+      }
     }
-
-    const vc = interaction.member.voice.channel;
-    if (!vc) return interaction.reply({ content: '❗ Join a voice channel first.', flags: MessageFlags.Ephemeral });
-
-    const player = client.lavalink.createPlayer({
-      guildId: interaction.guild.id,
-      voiceChannelId: interaction.member.voice.channelId,
-      textChannelId: interaction.channel.id,
-      selfDeaf: true,
-      volume: 100
-    });
-    console.log("player created...")
-    await player.connect(interaction.member.voice.channelId, { deaf: true });
-
-    const search = await player.search({ query, source });
-    if (!search || !search.tracks.length)
-      return interaction.reply('❌ No results found.');
-
-    const track = search.tracks[0];
-    await player.queue.add(track);
-    console.log("song added....")
-
-    if (player.playing || player.paused){
-      return interaction.reply({ content: `Added ${track.info.title} to the queue.`, flags: MessageFlags.Ephemeral}); 
-    }
-
-    await interaction.deferReply();
-    await player.play();
-    
-    const menuMsg = await interaction.followUp(playerMenu(track, interaction.user, player));
-    player.messageId = menuMsg.id;
   },
 
   autocomplete: async (interaction) => {
