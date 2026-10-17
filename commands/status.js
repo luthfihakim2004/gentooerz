@@ -1,5 +1,4 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { mainnode } from '../utils/audio.js';
 import { botStats } from '../utils/stats.js'; // you’ll make this below
 import { duration } from '../utils/time.js'; // optional helper
 
@@ -19,10 +18,9 @@ export default {
       flags: MessageFlags.Ephemeral,
       content: [
         `🤖 **Gentooerz** by **<@328317837904969729>**`,
-        `⏱ Uptime: ${uptime}`,
+        `⏱  Uptime: ${uptime}`,
         `🧠 Version: ${process.env.npm_package_version || 'dev'}`,
         `🗑 Messages Deleted: ${botStats.deletedMessages}`,
-        `🎶 Lavalink Status: ${mainnode.connectionStatus}`
       ].join('\n'),
     });
   }
